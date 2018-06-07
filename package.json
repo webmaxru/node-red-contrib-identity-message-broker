@@ -1,0 +1,32 @@
+{
+  "name": "node-red-contrib-identity-message-broker",
+  "version": "0.1.0",
+  "description": "An Identity Message Broker node for Node-RED",
+  "dependencies": {
+    "is-utf8": "0.2.1",
+    "mqtt": "2.15.1",
+    "node-fetch": "^2.1.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/webmaxru/node-red-contrib-identity-message-broker.git"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "node-red",
+    "mqtt",
+    "identity-message-broker"
+  ],
+  "node-red": {
+    "nodes": {
+      "identity-message-broker": "identity-message-broker.js"
+    }
+  },
+  "author": {
+    "name": "Maxim Salnikov",
+    "email": "salnikov@gmail.com"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

@@ -1,0 +1,469 @@
+<!--
+  Copyright JS Foundation and other contributors, http://js.foundation
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+  http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<script type="text/x-red" data-template-name="imbroker in">
+    <div class="form-row">
+        <label for="node-input-broker"><i class="fa fa-globe"></i> Server</label>
+        <input type="text" id="node-input-broker">
+    </div>
+    <div class="form-row">
+        <label for="node-input-topic"><i class="fa fa-tasks"></i> Topic</label>
+        <input type="text" id="node-input-topic" placeholder="Topic">
+    </div>
+    <div class="form-row">
+        <label for="node-input-qos"><i class="fa fa-empire"></i> QoS</label>
+        <select id="node-input-qos" style="width:125px !important">
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="imbroker in">
+<p>Connects to a MQTT broker and subscribes to messages from the specified topic.</p>
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+       <dt>payload <span class="property-type">string | buffer</span></dt>
+       <dd>a string unless detected as a binary buffer.</dd>
+       <dt>topic <span class="property-type">string</span></dt>
+       <dd>the MQTT topic, uses / as a heirarchy separator.</dd>
+       <dt>qos <span class="property-type">number</span> </dt>
+       <dd>0, fire and forget - 1, at least once - 2, once and once only.</dd>
+       <dt>retain <span class="property-type">boolean</span></dt>
+       <dd>true indicates the message was retained and may be old.</dd>
+    </dl>
+    <h3>Details</h3>
+    The subscription topic can include MQTT wildcards, + for one level, # for multiple levels.</p>
+    <p>This node requires a connection to a MQTT broker to be configured. This is configured by clicking
+    the pencil icon.</p>
+    <p>Several MQTT nodes (in or out) can share the same broker connection if required.</p>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('imbroker in',{
+        category: 'input',
+        defaults: {
+            name: {value:""},
+            topic: {value:"",required:true,validate: RED.validators.regex(/^(#$|(\+|[^+#]*)(\/(\+|[^+#]*))*(\/(\+|#|[^+#]*))?$)/)},
+            qos: {value: "2"},
+            broker: {type:"identity-message-broker", required:true}
+        },
+        color:"#d8bfd8",
+        inputs:0,
+        outputs:1,
+        icon: "bridge.png",
+        label: function() {
+            return this.name||this.topic||"imbroker";
+        },
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        },
+        oneditprepare: function() {
+            if (this.qos === undefined) {
+                $("#node-input-qos").val("2");
+            }
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="imbroker out">
+    <div class="form-row">
+        <label for="node-input-broker"><i class="fa fa-globe"></i> Broker</label>
+        <input type="text" id="node-input-broker">
+    </div>
+    <div class="form-row">
+        <label for="node-input-topic"><i class="fa fa-tasks"></i> Topic</label>
+        <input type="text" id="node-input-topic" placeholder="Topic">
+    </div>
+    <div class="form-row">
+        <label for="node-input-qos"><i class="fa fa-empire"></i> QoS</label>
+        <select id="node-input-qos" style="width:125px !important">
+            <option value=""></option>
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+        </select>
+        &nbsp;&nbsp;<i class="fa fa-history"></i>&nbsp;Retain &nbsp;<select id="node-input-retain" style="width:125px !important">
+            <option value=""></option>
+            <option value="false">false</option>
+            <option value="true">true</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-tips">Tip: Leave topic, qos or retain blank if you want to set them via msg properties.</div>
+</script>
+
+<script type="text/x-red" data-help-name="imbroker out">
+    <p>Connects to a MQTT broker and publishes messages.</p>
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+       <dt>payload <span class="property-type">string | buffer</span></dt>
+       <dd> most users prefer simple text payloads, but binary buffers can also be published.</dd>
+
+       <dt class="optional">topic <span class="property-type">string</span></dt>
+       <dd> the MQTT topic to publish to.</dd>
+
+       <dt class="optional">qos <span class="property-type">number</span></dt>
+       <dd>0, fire and forget - 1, at least once - 2, once and once only. Default 0.</dd>
+
+       <dt class="optional">retain <span class="property-type">boolean</span></dt>
+       <dd>set to true to retain the message on the broker. Default false.</dd>
+    </dl>
+    <h3>Details</h3>
+    <code>msg.payload</code> is used as the payload of the published message.
+    If it contains an Object it will be converted to a JSON string before being sent.
+    If it contains a binary Buffer the message will be published as-is.</p>
+    <p>The topic used can be configured in the node or, if left blank, can be set by <code>msg.topic</code>.</p>
+    <p>Likewise the QoS and retain values can be configured in the node or, if left
+    blank, set by <code>msg.qos</code> and <code>msg.retain</code> respectively. To clear a previously
+    retained topic from the broker, send a blank message to that topic with the retain flag set.</p>
+    <p>This node requires a connection to a MQTT broker to be configured. This is configured by clicking
+    the pencil icon.</p>
+    <p>Several MQTT nodes (in or out) can share the same broker connection if required.</p>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('imbroker out',{
+        category: 'output',
+        defaults: {
+            name: {value:""},
+            topic: {value:""},
+            qos: {value:""},
+            retain: {value:""},
+            broker: {type:"identity-message-broker", required:true}
+        },
+        color:"#d8bfd8",
+        inputs:1,
+        outputs:0,
+        icon: "bridge.png",
+        align: "right",
+        label: function() {
+            return this.name||this.topic||"imbroker";
+        },
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="identity-message-broker">
+    <div class="form-row">
+        <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-config-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <ul style="background: #fff; min-width: 600px; margin-bottom: 20px;" id="node-config-identity-message-broker-tabs"></ul>
+    </div>
+    <div id="node-config-identity-message-broker-tabs-content" style="min-height: 170px;">
+        <div id="identity-message-broker-tab-connection" style="display:none">
+            <div class="form-row node-input-broker">
+                <label for="node-config-input-broker"><i class="fa fa-globe"></i> Server</label>
+                <input class="input-append-left" type="text" id="node-config-input-broker" style="width:40%;" placeholder="localhost">
+                <label for="node-config-input-port" style="margin-left:20px; width:43px; "> Port</label>
+                <input type="text" id="node-config-input-port" placeholder="Port" style="width:55px">
+            </div>
+            <div class="form-row">
+                <input type="checkbox" id="node-config-input-usetls" style="display: inline-block; width: auto; vertical-align: top;">
+                <label for="node-config-input-usetls" style="width: auto">Enable secure (SSL/TLS) connection</label>
+                <div id="node-config-row-tls" class="hide">
+                    <label style="width: auto; margin-left: 20px; margin-right: 10px;" for="node-config-input-tls">TLS configuration</label><input style="width: 300px;" type="text" id="node-config-input-tls">
+                </div>
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-clientid"><i class="fa fa-tag"></i> Client ID</label>
+                <input type="text" id="node-config-input-clientid" placeholder="Leave blank for auto generated">
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-keepalive" style="width: auto"><i class="fa fa-clock-o"></i> Keep alive time (s)</label>
+                <input type="text" id="node-config-input-keepalive" style="width: 50px">
+                <input type="checkbox" id="node-config-input-cleansession" style="margin-left: 30px; height: 1em;display: inline-block; width: auto; vertical-align: middle;">
+                <label for="node-config-input-cleansession" style="width: auto;">Use clean session</label>
+            </div>
+            <div class="form-row">
+                <input type="checkbox" id="node-config-input-compatmode" style="display: inline-block; width: auto; vertical-align: top;">
+                <label for="node-config-input-compatmode" style="width: auto;">Use legacy MQTT 3.1 support</label>
+            </div>
+        </div>
+        <div id="identity-message-broker-tab-security" style="display:none">
+            <div class="form-row">
+                <label for="node-config-input-user"><i class="fa fa-user"></i> Username</label>
+                <input type="text" id="node-config-input-user">
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-password"><i class="fa fa-lock"></i> Password</label>
+                <input type="password" id="node-config-input-password">
+            </div>
+        </div>
+        <div id="identity-message-broker-tab-oauth" style="display:none">
+            <div class="form-row">
+                <label for="node-config-input-oauthUrl"><i class="fa fa-user"></i> Url</label>
+                <input type="text" id="node-config-input-oauthUrl">
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-oauthUsername"><i class="fa fa-user"></i> Username</label>
+                <input type="text" id="node-config-input-oauthUsername">
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-oauthPassword"><i class="fa fa-lock"></i> Password</label>
+                <input type="password" id="node-config-input-oauthPassword">
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-clientId"><i class="fa fa-user"></i> Client Id</label>
+                <input type="text" id="node-config-input-clientId">
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-clientSecret"><i class="fa fa-lock"></i> Client Secret</label>
+                <input type="password" id="node-config-input-clientSecret">
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-oidcScope"><i class="fa fa-user"></i> OIDC scope</label>
+                <input type="text" id="node-config-input-oidcScope" placeholder="openid profile">
+            </div>
+        </div>
+        <div id="identity-message-broker-tab-birth" style="display:none">
+            <div class="form-row">
+                <label for="node-config-input-birthTopic"><i class="fa fa-tasks"></i> Topic</label>
+                <input type="text" id="node-config-input-birthTopic" placeholder="Leave blank to disable birth message">
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-birthQos"><i class="fa fa-empire"></i> QoS</label>
+                <select id="node-config-input-birthQos" style="width:125px !important">
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                </select>
+                &nbsp;&nbsp;<i class="fa fa-history"></i>&nbsp;Retain &nbsp;<select id="node-config-input-birthRetain" style="width:125px !important">
+                    <option value="false">false</option>
+                    <option value="true">true</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-birthPayload"><i class="fa fa-envelope"></i> Payload</label>
+                <input type="text" id="node-config-input-birthPayload" placeholder="Payload">
+            </div>
+        </div>
+        <div id="identity-message-broker-tab-will" style="display:none">
+            <div class="form-row">
+                <label for="node-config-input-willTopic"><i class="fa fa-tasks"></i> Topic</label>
+                <input type="text" id="node-config-input-willTopic" placeholder="Leave blank to disable will message">
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-willQos"><i class="fa fa-empire"></i> QoS</label>
+                <select id="node-config-input-willQos" style="width:125px !important">
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                </select>
+                &nbsp;&nbsp;<i class="fa fa-history"></i>&nbsp;Retain &nbsp;<select id="node-config-input-willRetain" style="width:125px !important">
+                    <option value="false">false</option>
+                    <option value="true">true</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-willPayload"><i class="fa fa-envelope"></i> Payload</label>
+                <input type="text" id="node-config-input-willPayload" placeholder="Payload">
+            </div>
+        </div>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="identity-message-broker">
+    <p>Configuration for a connection to an MQTT broker.</p>
+    <p>This configuration will create a single connection to the broker which can
+       then be reused by <code>MQTT In</code> and <code>MQTT Out</code> nodes.</p>
+    <p>The node will generate a random Client ID if one is not set and the
+       node is configured to use a Clean Session connection. If a Client ID is set,
+       it must be unique to the broker you are connecting to.</p>
+    <h4>Birth Message</h4>
+    <p>This is a message that will be published on the configured topic whenever the
+       connection is established.</p>
+    <h4>Will Message</h4>
+    <p>This is a message that will be published by the broker in the event the node
+       unexpectedly loses its connection.</p>
+    <h4>WebSockets</h4>
+    <p>The node can be configured to use a WebSocket connection. To do so, the Server
+       field should be configured with a full URI for the connection. For example:</p>
+    <pre>ws://example.com:4000/mqtt</pre>
+
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('identity-message-broker',{
+        category: 'config',
+        defaults: {
+            name: {value:""},
+            broker: {value:"",required:true},
+            port: {value:1883,required:false,validate:RED.validators.number(true)},
+            tls: {type:"tls-config",required: false},
+            clientid: {value:"", validate: function(v) {
+                if ($("#node-config-input-clientid").length) {
+                    // Currently editing the node
+                    return $("#node-config-input-cleansession").is(":checked") || (v||"").length > 0;
+                } else {
+                    return (this.cleansession===undefined || this.cleansession) || (v||"").length > 0;
+                }
+            }},
+            usetls: {value: false},
+            verifyservercert: { value: false},
+            compatmode: { value: true},
+            keepalive: {value:60,validate:RED.validators.number()},
+            cleansession: {value: true},
+            willTopic: {value:""},
+            willQos: {value:"0"},
+            willRetain: {value:false},
+            willPayload: {value:""},
+            birthTopic: {value:""},
+            birthQos: {value:"0"},
+            birthRetain: {value:false},
+            birthPayload: {value:""},
+            oauthUrl: {value:"",required:true},
+            oidcScope: {value:"openid profile",required:true}, 
+        },
+        credentials: {
+            user: {type:"text"},
+            password: {type: "password"},
+            clientId: {type:"text"},
+            clientSecret: {type: "password"},
+            oauthUsername: {type:"text"},
+            oauthPassword: {type: "password"}
+        },
+        label: function() {
+            if (this.name) {
+                return this.name;
+            }
+            var b = this.broker;
+            if (b === "") { b = "undefined"; }
+            var lab = "";
+            lab = (this.clientid?this.clientid+"@":"")+b;
+            if (b.indexOf("://") === -1){
+                if (!this.port){ lab = lab + ":1883"; }
+                else { lab = lab + ":" + this.port; }
+            }
+            return lab;
+        },
+        oneditprepare: function () {
+            var tabs = RED.tabs.create({
+                id: "node-config-identity-message-broker-tabs",
+                onchange: function(tab) {
+                    $("#node-config-identity-message-broker-tabs-content").children().hide();
+                    $("#" + tab.id).show();
+                }
+            });
+            tabs.addTab({
+                id: "identity-message-broker-tab-connection",
+                label: "Connection"
+            });
+            tabs.addTab({
+                id: "identity-message-broker-tab-security",
+                label: "Security"
+            });
+            tabs.addTab({
+                id: "identity-message-broker-tab-birth",
+                label: "Birth Message"
+            });
+            tabs.addTab({
+                id: "identity-message-broker-tab-will",
+                label: "Will Message"
+            });
+            tabs.addTab({
+                id: "identity-message-broker-tab-oauth",
+                label: "OAuth"
+            });
+            setTimeout(function() { tabs.resize(); },0);
+            if (typeof this.cleansession === 'undefined') {
+                this.cleansession = true;
+                $("#node-config-input-cleansession").prop("checked",true);
+            }
+            if (typeof this.usetls === 'undefined') {
+                this.usetls = false;
+                $("#node-config-input-usetls").prop("checked",false);
+            }
+            if (typeof this.compatmode === 'undefined') {
+                this.compatmode = true;
+                $("#node-config-input-compatmode").prop('checked', true);
+            }
+            if (typeof this.keepalive === 'undefined') {
+                this.keepalive = 15;
+                $("#node-config-input-keepalive").val(this.keepalive);
+            }
+            if (typeof this.willQos === 'undefined') {
+                this.willQos = "0";
+                $("#node-config-input-willQos").val("0");
+            }
+            if (typeof this.birthQos === 'undefined') {
+                this.birthQos = "0";
+                $("#node-config-input-birthQos").val("0");
+            }
+
+            function updateTLSOptions() {
+                if ($("#node-config-input-usetls").is(':checked')) {
+                    $("#node-config-row-tls").show();
+                } else {
+                    $("#node-config-row-tls").hide();
+                }
+            }
+            updateTLSOptions();
+            $("#node-config-input-usetls").on("click",function() {
+                updateTLSOptions();
+            });
+            var node = this;
+            function updateClientId() {
+                if ($("#node-config-input-cleansession").is(":checked")) {
+                    $("#node-config-input-clientid").attr("placeholder","Leave blank for auto generated");
+                } else {
+                    $("#node-config-input-clientid").attr("placeholder","Must be set for non-clean sessions");
+                }
+                $("#node-config-input-clientid").change();
+            }
+            setTimeout(updateClientId,0);
+            $("#node-config-input-cleansession").on("click",function() {
+                updateClientId();
+            });
+
+            function updatePortEntry(){
+                var disabled = $("#node-config-input-port").prop("disabled");
+                if ($("#node-config-input-broker").val().indexOf("://") === -1){
+                    if (disabled){
+                        $("#node-config-input-port").prop("disabled", false);
+                    }
+                }
+                else {
+                    if (!disabled){
+                        $("#node-config-input-port").prop("disabled", true);
+                    }
+                }
+            }
+            $("#node-config-input-broker").change(function() {
+                updatePortEntry();
+            });
+            $("#node-config-input-broker").on( "keyup", function() {
+                updatePortEntry();
+            });
+            setTimeout(updatePortEntry,50);
+
+        },
+        oneditsave: function() {
+            if (!$("#node-config-input-usetls").is(':checked')) {
+                $("#node-config-input-tls").val("");
+            }
+        }
+    });
+</script>
